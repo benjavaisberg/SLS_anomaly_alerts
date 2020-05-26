@@ -192,3 +192,6 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# config
+private_config.py
