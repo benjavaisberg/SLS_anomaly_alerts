@@ -48,8 +48,8 @@ def get_train(sensor, **kwargs):
     n_days_train = datetime.timedelta(days=train_delta)
     max_test_offset = datetime.timedelta(days=max(kwargs.get("test_delta_array", [1])))
 
-    start_date_train = str(date - (n_days_train +  max_test_offset))
-    end_date_train   = str(date - max_test_offset)   
+    start_date_train = str(date - (n_days_train + max_test_offset))
+    end_date_train   = str(date - max_test_offset)
     train = get_sls_data(sensor, start_date_train, end_date_train)
     return train, start_date_train
 
@@ -104,7 +104,7 @@ def get_ftp(start_date, end_date):
     data = pd.DataFrame(data)
     # no actual adjustments are done, but this line still remains
     data["adj_v"]     = data["v"]
-    data["timestamp"] = data["t"].apply(date_parser.parse) 
+    data["timestamp"] = data["t"].apply(date_parser.parse)
     return data
 
 def get_ftp_function(train_start, test_end):
@@ -232,7 +232,9 @@ def plot(data, params, ftp_function, **kwargs):
         plt.show()
     plt.close()
 
-#defaults to current day as the test day 
+#defaults to current day as the test day
+
+# TODO Error here
 def full_sensor_test(sensor, **kwargs):
     """
     given a sensor (row of the sensors dataframe) runs a full test on it
@@ -285,6 +287,7 @@ def full_sensor_test(sensor, **kwargs):
                                                 ftp_function, **kwargs),
                                                     test_all))
 
+        # TODO make this more flexible for any kind of test
         # calculate flags (are the residuals above the threshold)
         flag_1hour    = (test_res_all[0] > conf.ONE_HOUR_THRESHOLD and
                           sensor_id not in conf.ONE_HOUR_IGNORE)
@@ -315,8 +318,10 @@ def daily_test():
     downloads every sensor and runs the full test on every one
     """
     api_data  = scraper.get_sensors_with_obs_type()
+    print(api_data)
     print("got sensors, beginning to run tests on each sensor")
-    sensors   = pd.DataFrame(api_data)
+    sensors   = pd.DataFrame(api_data) # create dataframe 
+    print(sensors)
     out = sensors.apply(full_sensor_test, axis=1, test_delta_array = [1/24, 1, 3], save_plots=True)
     # break apart the output and save it in the dataframe
     sensors["train_residuals"]      = out.apply(lambda x: x[0]    if x else None)

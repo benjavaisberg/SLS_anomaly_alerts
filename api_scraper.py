@@ -27,10 +27,13 @@ def get_sensor_datastreams():
             information on the sensor
     """
     api_response = req.get(base_url_sls).json()
+    # print(api_response)
     def create_sensor_obj(sensor):
         """Turns a 'sensor' from the API into a succinct dictionary."""
         location = (req.get(sensor["Locations@iot.navigationLink"])).json()["value"][0]
+        # print(location)
         coordinates = location["location"]["coordinates"]
+        # print(coordinates)
         return {
           "name":   sensor["name"],
           "desc":   sensor["description"],
@@ -52,16 +55,19 @@ def get_sensors_with_obs_type(type_name="Water Level"):
             with information on the sensor
     """
     all_sensor_links = get_sensor_datastreams()
+    # print(all_sensor_links)
     def get_link_from_sensor(sensor):
         """Grabs the requested datastream from the sensor if it has one."""
         # get all the observation types then filter the ones that say "Water Level"
         obs_type_list   = req.get(sensor["link"]).json()["value"]
+        # print(obs_type_list)
         only_water_list = list(filter(lambda obs_type: obs_type["name"] == type_name, obs_type_list))
         # some don't have a water level. Just return in that case
         if len(only_water_list) == 0:
             return
         # variable naming is not my forte
         wataaa = only_water_list[0]
+        # print(wataaa)
         return {
             "name":   sensor["name"],
             "desc":   sensor["desc"],
