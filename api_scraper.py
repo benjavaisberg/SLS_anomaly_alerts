@@ -12,6 +12,12 @@ import datetime
 import binary_search as bs
 import re
 from dateutil.tz import tzutc
+from pymongo import MongoClient
+import private_config
+
+client = MongoClient(private_config.DB_URI)
+db = client.test # collection name: test
+
 
 base_url_sls       = 'https://api.sealevelsensors.org/v1.0/Things'
 base_url_noaa      = 'https://tidesandcurrents.noaa.gov/api/datagetter'
