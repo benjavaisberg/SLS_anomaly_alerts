@@ -19,7 +19,7 @@ def get_sensors_with_obs_type_wrapper():
 @app.route("/get_obs_for_link")
 def get_obs_for_link_wrapper():
     args = request.args
-    return jsonify(api_scraper.get_obs_for_link(link=args["link"], start_date=args["start_date"]))
+    return jsonify(api_scraper.get_obs_for_link(link=args["link"], sensor_name=args["sensor_name"], start_date=args["start_date"]))
 
 
 @app.route("/daily_output")

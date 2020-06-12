@@ -35,8 +35,8 @@ def get_all_pngs():
     try:
         return list(
                map(lambda x: "./images/" + x,
-               filter(lambda x: '.png' in x,
-               os.listdir('./images/'))))
+                   filter(lambda x: '.png' in x,
+                          os.listdir('../images/'))))
     except FileNotFoundError:
         return []
 

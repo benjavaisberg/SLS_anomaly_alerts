@@ -5,7 +5,7 @@ Little code should be in this file, it should
 just link the other files
 """
 import analysis
-import emailer
+from utils import emailer
 import config as conf
 import os
 
