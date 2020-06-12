@@ -22,7 +22,10 @@ def get_sls_data(sensor, start_date, end_date):
     """
     link      = sensor["link"]
     elevation = sensor["elev"]
-    data      = scraper.get_obs_for_link(link, start_date, end_date)
+    sensor_name = sensor["name"]
+    # call get_obs_link with the sensor name also
+    data = scraper.get_obs_for_link(link, sensor_name, start_date, end_date)
+    # data      = scraper.get_obs_for_link(link, start_date, end_date)
     data      = pd.DataFrame(data, columns= ["value", "timestamp"])
     data["adj_value"] = data["value"].map(lambda value: float(elevation) + float(value))
     return data

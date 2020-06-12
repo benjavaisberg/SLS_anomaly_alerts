@@ -4,6 +4,7 @@ Helper functions to scrape data from the sea level sensors project.
 see https://dev.sealevelsensors.org/
 """
 import requests as req
+import numpy as np
 import dateutil.parser as date_parser
 from pprint import pprint as print
 import json
@@ -12,16 +13,21 @@ import datetime
 import binary_search as bs
 import re
 from dateutil.tz import tzutc
-from pymongo import MongoClient
+import pytz
+import pymongo
 import private_config
+from utils import db_connector
+from utils import utils
 
-client = MongoClient(private_config.DB_URI)
-db = client.test # collection name: test
+
+# utc = pytz.utc
+# DB connection
+db = db_connector.mongodb_connection()
 
 
 base_url_sls       = 'https://api.sealevelsensors.org/v1.0/Things'
 base_url_noaa      = 'https://tidesandcurrents.noaa.gov/api/datagetter'
-DEFAULT_START_DATE = 'April 1 2019'
+DEFAULT_START_DATE = 'March 1 2020'
 
 
 def get_sensor_datastreams():
@@ -83,8 +89,9 @@ def get_sensors_with_obs_type(type_name="Water Level"):
     # the filter simply removes all the Nones due to sensors that don't have a water level link
     return list(filter(None, map(get_link_from_sensor, all_sensor_links)))
 
+"""
 def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, cache_folder='cache'):
-    """
+    
     Gets all observations for a given link and caches it for future use
 
     The observations are sorted by date.
@@ -106,7 +113,8 @@ def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, ca
 
     Returns:
         observations (list): a list of tuples, (observation, date_of_observation)
-    """
+    COMMENT HERE
+    # ""
     observations = []
     # the file name is quite absurd, but hopefully unique
     file_name = './' + cache_folder + '/' + "".join(re.split("[^a-zA-Z0-9]*", link)) + '.json'
@@ -130,19 +138,21 @@ def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, ca
                 # load and parse all the observations
                 observations = list(map(lambda x: (x[0], utcparse(x[1])), json.load(cache_file)))
                 # no observations? time to rebuild the cache
-                if len(observations) < 1: 
-                	raise FileNotFoundError 
+                if len(observations) < 1:
+                    raise FileNotFoundError
                 # the last cached observation
                 end_observations = observations[-1][1]
                 if parsed_end_date > end_observations:
-                    """
+                    # COMMENT HERE
+                    # ""
                     if the requested end date goes beyond the cache, we need more data
                     note the [:-6]. This is a hacky bandaid because 
                     for some reason the date format wasn't working
                     also note the [1:]
                     this is because the first element is duplicated 
                     in the cache and when getting new data
-                    """
+                    # COMMENT HERE
+                    # ""
                     observations += get_obs_for_link_uncached(link, str(end_observations)[:-6], str(today))[1:]
                 else:
                     do_update = False
@@ -152,7 +162,6 @@ def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, ca
     else:
         # or if the cache is requested to be reset
         observations = get_obs_for_link_uncached(link, DEFAULT_START_DATE, today)
-
     # write the data back out to the cache
     if do_update:
         with open(file_name, 'w') as cache_file:
@@ -166,6 +175,67 @@ def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, ca
 
     # slice all the observations to what the request was
     return observations[start_index:end_index]
+"""
+
+
+
+
+def get_obs_for_link(link, sensor_name, start_date=None, end_date=None, reset_cache=False):
+    observations = []
+    today = str(datetime.datetime.utcnow())
+    # Parse end and start dates
+    # def utcparse(x): return date_parser.parse(x).replace(tzinfo=tzutc())
+    parsed_start_date = (utils.utcparse(start_date)
+                         if start_date
+                         else date_parser.parse(DEFAULT_START_DATE))
+    parsed_end_date = (utils.utcparse(end_date)
+                       if end_date
+                       else datetime.datetime.now(datetime.timezone.utc))
+
+    update = True
+    if not reset_cache:
+        # check if collection exists
+        # if sensor_name not in db.list_collection_names():
+        #     collection = db[sensor_name]
+        # query for all observations
+        try:
+            queried_observations = db[sensor_name].find_one({}, {'_id':0, 'observations':1})
+        except pymongo.errors.OperationFailure:
+            print("DB failed")
+        try:
+            if queried_observations is None:
+                raise FileNotFoundError
+            observations = queried_observations['observations']
+            """
+            # datetime is stored in Mongo as aware object but is queried as
+            # naive so it has to be changed back to aware to retain timezone info
+            # converts observations to numpy array to vectorize operation of
+            # converting all dates to aware
+            """
+            observations = np.array(observations)
+            vfunc = np.vectorize(utils.make_aware_date)
+            observations[:, 1] = vfunc(observations[:,1])
+            observations = observations.tolist()
+            last_observation_date = observations[-1][1]
+            if parsed_end_date > last_observation_date:
+                last_observation_date = utils.remove_tzinfo(str(last_observation_date))
+                observations += get_obs_for_link_uncached(link, str(last_observation_date), str(today))
+            else:
+                update = False
+        except FileNotFoundError:
+            observations = get_obs_for_link_uncached(link, DEFAULT_START_DATE, today)
+    else:
+        observations = get_obs_for_link_uncached(link, DEFAULT_START_DATE, today)
+    if update:
+        try:
+            db[sensor_name].replace_one({}, {"observations": observations}, True)
+        except pymongo.errors.OperationFailure:
+            print("Error: Couldn't write to the DB")
+    start_index = bs.search(observations, (None, parsed_start_date), key=lambda x: x[1])
+    end_index = bs.search(observations, (None, parsed_end_date), key=lambda x: x[1])
+    return observations[start_index:end_index]
+
+
 
 
 def get_obs_for_link_uncached(link, start_date=None, end_date=None):
@@ -193,7 +263,7 @@ def get_obs_for_link_uncached(link, start_date=None, end_date=None):
     params = {}
     # an iot next link contains the params, so no need to set them if that's the case
     if not is_iot_next_link:
-        params["$select"]       =  "resultTime,result"
+        params["$select"]       = "resultTime,result"
         params["$resultFormat"] =  "dataArray"
 
     if end_date and not start_date:
@@ -208,7 +278,11 @@ def get_obs_for_link_uncached(link, start_date=None, end_date=None):
     elif start_date:
         params["$filter"] = "resultTime ge " + start_date
 
-    response = req.get(link, params = params).json()
+    try:
+        response = req.get(link, params = params).json()
+        # print(repr(response))
+    except req.exceptions.HTTPError as err:
+        print(err)
     # no response? just return something
     if len(response["value"]) == 0:
         return []
