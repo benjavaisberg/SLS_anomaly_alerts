@@ -26,12 +26,13 @@ sudo docker run -p 8000:8000 anomalyserver
 Optional: If you follow the above instructions you will build a image which will then build its own cache. This can take a long time, which can be irritating if you keep making small changes and then having to rebuild. You can instead pre-build a cache by running daily_controller.py and then building your docker image. Then, small code changes can be rebuilt without needing to wait an hour each time
 ## For future developers
 ### api_scraper.py
-This file contains a variety of methods that make using the api easier. Useful to probably any developer
+This file contains a variety of methods that make using the api easier. Useful to probably any developer.
 ### config.py
 a config where you can define thresholds for when a sensor is "interesting". 
 ### emailer.py
 file containing code that actually sends the emails
 ### analysis.py
-In very broad strokes: The code in this file grabs data from every sensor, fits the fort pulaski predictions onto that data, and sees how much a sensor deviates from the ft. pulaski predictions (if the deviation is too high, the sensor is flagged as "interesting"). We also considered fitting a sine wave onto the sensors, but ran into some problems there. 
+In very broad strokes: The code in this file grabs data from every sensor, fits the fort pulaski predictions onto that data, and sees how much a sensor deviates from the ft. pulaski predictions (if the deviation is too high, the sensor is flagged as "interesting"). We also considered fitting a sine wave onto the sensors, but ran into some problems there.
+The data is fetched from the API and stored in MongoDB to act as a cache. Data is fetched from the DB first, if the data is stale then it fetches the API for new data and overwrites the DB.
 
 Unfortunately some of the code in analysis.py is inflexible, hardcoded to only really be able to run the tests for 1 hour, 1 day, 3 days. If you would like to use this code for your own analysis however, many of the helper functions are perfectly flexible and usable for other analysis purposes. 

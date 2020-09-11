@@ -90,9 +90,7 @@ def get_sensors_with_obs_type(type_name="Water Level"):
     return list(filter(None, map(get_link_from_sensor, all_sensor_links)))
 
 """
-def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, cache_folder='cache'):
-    
-    Gets all observations for a given link and caches it for future use
+Gets all observations for a given link and caches it for future use
 
     The observations are sorted by date.
     The return list has datetime objects inside, which may pose a challenge
@@ -113,68 +111,6 @@ def get_obs_for_link(link, start_date=None, end_date=None, reset_cache=False, ca
 
     Returns:
         observations (list): a list of tuples, (observation, date_of_observation)
-    COMMENT HERE
-    # ""
-    observations = []
-    # the file name is quite absurd, but hopefully unique
-    file_name = './' + cache_folder + '/' + "".join(re.split("[^a-zA-Z0-9]*", link)) + '.json'
-    # just parsing some dates
-    today = str(datetime.datetime.utcnow())
-    def utcparse(x): return date_parser.parse(x).replace(tzinfo=tzutc())
-    parsed_start_date = (utcparse(start_date)
-                        if start_date
-                        else date_parser.parse(DEFAULT_START_DATE))
-    parsed_end_date = (utcparse(end_date)
-                       if end_date
-                       else datetime.datetime.now(datetime.timezone.utc))
-    # whether or not to write out a new cache
-    do_update = True
-    if not reset_cache:
-        # if there is no folder to store caches in, create one
-        if not os.path.isdir('./' + cache_folder):
-            os.mkdir('./' + cache_folder)
-        try:
-            with open(file_name) as cache_file:
-                # load and parse all the observations
-                observations = list(map(lambda x: (x[0], utcparse(x[1])), json.load(cache_file)))
-                # no observations? time to rebuild the cache
-                if len(observations) < 1:
-                    raise FileNotFoundError
-                # the last cached observation
-                end_observations = observations[-1][1]
-                if parsed_end_date > end_observations:
-                    # COMMENT HERE
-                    # ""
-                    if the requested end date goes beyond the cache, we need more data
-                    note the [:-6]. This is a hacky bandaid because 
-                    for some reason the date format wasn't working
-                    also note the [1:]
-                    this is because the first element is duplicated 
-                    in the cache and when getting new data
-                    # COMMENT HERE
-                    # ""
-                    observations += get_obs_for_link_uncached(link, str(end_observations)[:-6], str(today))[1:]
-                else:
-                    do_update = False
-        except FileNotFoundError:
-            # if there is no existing cache, create one with all the data you can get
-            observations = get_obs_for_link_uncached(link, DEFAULT_START_DATE, today)
-    else:
-        # or if the cache is requested to be reset
-        observations = get_obs_for_link_uncached(link, DEFAULT_START_DATE, today)
-    # write the data back out to the cache
-    if do_update:
-        with open(file_name, 'w') as cache_file:
-            # convert to string because json can't write otherwise
-            jsonible_observations = list(map(lambda x: (x[0], str(x[1])), observations))
-            json.dump(jsonible_observations, cache_file)
-
-    # now to actually give the requester what they wanted
-    start_index = bs.search(observations, (None, parsed_start_date), key=lambda x: x[1])
-    end_index   = bs.search(observations, (None, parsed_end_date),   key=lambda x: x[1])
-
-    # slice all the observations to what the request was
-    return observations[start_index:end_index]
 """
 
 
